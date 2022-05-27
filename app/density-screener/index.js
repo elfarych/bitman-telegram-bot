@@ -1,4 +1,5 @@
 const axios = require("axios");
+
 const coinCandles = async (coin, densitySum, densityPrice) => {
     let densityInDB = false
     try {
@@ -59,26 +60,16 @@ const densityFinder = (orders = [], density = 300000, coin) => {
 
         if (sum >= density) {
 
-            if (percentDifference(price, coin.price) < 3) {
+            if (percentDifference(price, coin.price) <= 2) {
                 coinCandles(coin, sum, price)
             }
         }
     })
 }
 
-
-const ordersHandles = (orders = {}, coin = {}) => {
-    const bids = orders.bids || []
-    const asks = orders.asks || []
-    const density = getDensity(coin)
-    densityFinder(bids, density,  coin)
-    densityFinder(asks, density, coin)
-}
-
 const getDensity = (coin) => {
     if (!coin.symbol) return 0
-    const symbol = coin.symbol.replace('BUSD', '').replace('USDT', '')
-    console.log(symbol)
+    const symbol = coin.symbol.replace('USDT', '')
     switch (symbol) {
         case 'BTC':
             return 5000000
@@ -91,6 +82,14 @@ const getDensity = (coin) => {
         default:
             return 300000
     }
+}
+
+const ordersHandles = (orders = {}, coin = {}) => {
+    const bids = orders.bids || []
+    const asks = orders.asks || []
+    const density = getDensity(coin)
+    densityFinder(bids, density,  coin)
+    densityFinder(asks, density, coin)
 }
 
 const loadOrdersBooks = async (coins = [], index = 0) => {
@@ -118,7 +117,7 @@ const loadCoins = async () => {
     try {
         await $axios.get(`${$appConfig.binanceFuturesAPI}/fapi/v1/ticker/price`)
             .then(res => {
-                loadOrdersBooks(res.data)
+                loadOrdersBooks(res.data.filter(item => !item.symbol.endsWith('BUSD')))
             })
     } catch (e) {
         errorHandler(e)
