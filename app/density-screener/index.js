@@ -20,12 +20,11 @@ const coinCandles = async (coin, densitySum, densityPrice) => {
         return null
     }
 
-
     try {
         await $axios(`${$appConfig.binanceSpotAPI}/api/v3/klines`, {
             params: {
                 symbol: coin.symbol,
-                limit: 1,
+                limit: 2,
                 interval: '1h'
             }
         })
@@ -34,7 +33,7 @@ const coinCandles = async (coin, densitySum, densityPrice) => {
                 const volume = parseFloat(candle[7])
                 const fiveMinVolume = volume / 12
 
-                if (fiveMinVolume / 2 < densitySum) {
+                if (fiveMinVolume < densitySum) {
 
                     axios.post(`${$appConfig.backendURL}/density/create/`, {
                         symbol: coin.symbol,
@@ -98,18 +97,24 @@ const loadOrdersBooks = async (coins = [], index = 0) => {
         await $axios(`${$appConfig.binanceSpotAPI}/api/v3/depth`, {
             params: {
                 symbol: coin.symbol,
-                limit: 1000
+                limit: 5000
             }
         })
             .then(res => {
                 ordersHandles(res.data, coin)
+                console.log(coin.symbol + ' orders loaded...')
             })
     } catch (e) {
         errorHandler(e)
     }
-    if (index < coins.length - 1) {
-        await loadOrdersBooks(coins, index += 1)
-    }
+
+    setTimeout(() => {
+        if (index <= coins.length - 1) {
+            loadOrdersBooks(coins, index += 1)
+        } else {
+            start()
+        }
+    }, 1500)
 }
 
 
@@ -126,12 +131,7 @@ const loadCoins = async () => {
 
 const start = () => {
     loadCoins().then(() => logger(`${ new Date() } coins loaded`))
-    setInterval(() => {
-        loadCoins().then(() => logger(`${ new Date() } coins loaded`))
-    }, 60000 * 3)
 }
-
-
 
 module.exports = {
     start
